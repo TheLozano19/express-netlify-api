@@ -1,0 +1,61 @@
+{
+  "info": {
+    "_postman_id": "09dd995c-dcac-4f87-ada8-b8d005131469",
+    "name": "express_netlify_api.postman_collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "59096377",
+    "_collection_link": "https://go.postman.co/collection/59096377-09dd995c-dcac-4f87-ada8-b8d005131469?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "correo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "x-api-key",
+            "value": "mi_clave_secreta_super_segura_123"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"to\": \"magooscuro153@gmail.com\",\r\n  \"subject\": \"Notificación desde Netlify Express API\",\r\n  \"message\": \"Hola, este mensaje fue despachado desde una función serverless.\",\r\n  \"senderName\": \"Josue\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "tiempo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "https://express2-netlify-api.netlify.app/api/time",
+          "protocol": "https",
+          "host": [
+            "express2-netlify-api",
+            "netlify",
+            "app"
+          ],
+          "path": [
+            "api",
+            "time"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

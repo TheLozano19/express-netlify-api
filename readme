@@ -1,0 +1,55 @@
+## 6. Respuestas Teóricas de Reflexión Arquitectónica
+
+### 1. Cold Start
+**¿Qué es el fenómeno de Cold Start en funciones serverless y qué impacto tiene en los tiempos de respuesta de una API creada con Express?**
+
+El *Cold Start* es básicamente el arranque rapido que pasa cuando llamas a una función serverless que llevaba tiempo inactiva. Como en Netlify/AWS Lambda no hay un servidor encendido todo el tiempo, cuando llega una petición la nube tiene que crear el contenedor desde cero, levantar Node.js y cargar todo el código.
+
+En nuestra API de Express, esto hace que la **primera petición** tarde un poco más de lo normal (un par de segundos), porque tiene que importar todos los paquetes del `package.json` (`express`, `nodemailer`, etc.). Ya después de esa primera llamada, la función se queda "caliente" en memoria y las siguientes respuestas son súper rápidas.
+
+---
+
+### 2. Estado Efímero (Statelessness)
+**Si declaras una variable global `let contador = 0;` en `api.js` y la incrementas en cada petición HTTP, ¿por qué el resultado es impredecible y no debe usarse para contar visitas en producción?**
+
+Porque las funciones serverless **no guardan estado entre ejecuciones** (son *stateless*). La variable `contador` solo existe mientras la instancia de la función esté viva. 
+
+El resultado es impredecible por dos razones:
+1. Si nadie entra en un rato, Netlify apaga la instancia y la variable vuelve a `0`.
+2. Si entran varios usuarios al mismo tiempo, Netlify crea múltiples instancias separadas en paralelo, y cada una va a llevar su propio conteo independiente sin sincronizarse con las demás.
+
+Si queremos contar visitas en producción, sí o sí necesitamos conectar una base de datos externa (como MongoDB o PostgreSQL) o un servicio de caché como Redis.
+
+---
+
+### 3. Patrón Adapter
+**¿Por qué Express no puede procesar directamente el evento de AWS Lambda / Netlify y qué función cumple exactamente `serverless-http`?**
+
+Express por defecto está hecho para servidores tradicionales (como un servidor en Node con `app.listen`), donde escucha sockets de red normales (`http.IncomingMessage` y `http.ServerResponse`). Sin embargo, Netlify Functions le entrega a la función un objeto JSON propio de AWS Lambda (`APIGatewayProxyEvent`). Express no sabe qué hacer con ese JSON.
+
+Aquí es donde entra **`serverless-http` como un adaptador (Adapter Pattern)**:
+* Recibe el objeto JSON de Netlify y lo "traduce" al formato de petición (`req`) que Express entiende.
+* Deja que Express procese la ruta normalmente.
+* Toma la respuesta de Express (`res`) y la vuelve a "traducir" al formato JSON que la infraestructura serverless necesita para enviársela al cliente.
+
+---
+
+### 4. Principios de 12-Factor App y Seguridad
+**¿Por qué subir un archivo `.env` a un repositorio público en GitHub representa una falla crítica de seguridad y de qué manera la inyección de variables de entorno de Netlify soluciona este riesgo?**
+
+Subir el `.env` a GitHub es un peligro enorme porque expondría nuestras contraseñas reales, tokens y claves SMTP a cualquier persona o bot malicioso que escanee repositorios públicos. Nos podrían hackear el correo o usar nuestros servicios. Además, rompería el principio de *12-Factor App* que exige separar el código de la configuración.
+
+Netlify soluciona esto permitiéndonos guardar las variables de forma segura desde su panel web (*Site Configuration → Environment Variables*). De esta forma, en GitHub solo subimos el archivo `.env.example` con variables vacías de plantilla, y Netlify se encarga de inyectar los valores reales directo en el entorno de ejecución (`process.env`) cuando hace el despliegue.
+
+---
+
+### 5. Riesgo de Open Relay y Abuso
+**¿Qué consecuencias técnicas y de reputación de dominio enfrenta un servidor que expone un endpoint POST de correo sin autenticación, captcha ni límites de tasa (rate limiting)?**
+
+Dejar un endpoint de correo abierto sin protección es básicamente regalarle una herramienta a los spammers (*Open Relay*). 
+
+Las consecuencias serían fatales:
+1. **Spam Masivo:** Bots maliciosos usarían nuestra API para mandar miles de correos de phishing o publicidad no deseada.
+2. **Caída a Listas Negras (Blacklisting):** Proveedores como Gmail o Outlook marcarían el dominio/correo remitente como origen de spam. Esto significa que cualquier correo legítimo que intentemos enviar después se irá directo a la carpeta de Spam o será rebotado.
+3. **Bloqueo de Cuenta:** El servicio de correo (Gmail, Resend, etc.) suspendería la cuenta por violar sus términos de uso.
+4. **Costos:** Si estuviéramos en un plan de pago, nos agotarían el saldo en minutos.

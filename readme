@@ -1,6 +1,17 @@
 https://express2-netlify-api.netlify.app/api/time
 https://express2-netlify-api.netlify.app/api/send-email
 
+curl --location 'https://express2-netlify-api.netlify.app/api/send-email' \
+--header 'Content-Type: application/json' \
+--header 'x-api-key: mi_clave_secreta_super_segura_123' \
+--data-raw '{
+    "to": "magooscuro153@gmail.com",
+    "subject": "Notificación desde Netlify Express API",
+    "message": "Hola, este mensaje fue despachado desde una función serverless.",
+    "senderName": "Josue"
+}'
+
+curl --location 'https://express2-netlify-api.netlify.app/api/time'
 
 
 
